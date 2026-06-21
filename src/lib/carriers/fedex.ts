@@ -3,10 +3,12 @@ let tokenCache: { token: string; expiresAt: number } | null = null;
 const BASE_URL = "https://apis.fedex.com";
 
 async function getToken(): Promise<string> {
+  // return cached token as long as it's not expired and not due to expire in the next 60 seconds
   if (tokenCache && Date.now() < tokenCache.expiresAt - 60_000) {
     return tokenCache.token;
   }
 
+  // cached token is expired - get a new token
   const res = await fetch(`${BASE_URL}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -22,10 +24,12 @@ async function getToken(): Promise<string> {
   }
 
   const data = await res.json();
+  // cache the new token
   tokenCache = {
     token: data.access_token,
     expiresAt: Date.now() + data.expires_in * 1000,
   };
+
   return data.access_token;
 }
 
@@ -54,6 +58,9 @@ export async function trackFedExBatch(trackingNumbers: string[]) {
   return res.json();
 }
 
+/**
+ * Normalize the events from Fedex into a map containing status, description, location and timestamp
+ */
 export function normalizeFedExEvents(raw: any, trackingNumber: string) {
   const result = raw?.output?.completeTrackResults?.find(
     (r: any) => r.trackingNumber === trackingNumber,

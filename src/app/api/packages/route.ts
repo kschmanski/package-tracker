@@ -9,8 +9,10 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // get all packages for this user
   const packages = await prisma.package.findMany({
     where: { userId: session.user.id },
+    // include the most recent event for each package
     include: {
       events: {
         orderBy: { timestamp: "desc" },
@@ -38,6 +40,7 @@ export async function POST(req: Request) {
     );
   }
 
+  // Get the carrier associated with the tracking number
   const carrier = carrierOverride ?? detectCarrier(trackingNumber);
 
   if (!carrier) {
@@ -47,6 +50,7 @@ export async function POST(req: Request) {
     );
   }
 
+  // create the package in the db
   const pkg = await prisma.package.create({
     data: {
       userId: session.user.id,
